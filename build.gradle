@@ -2,6 +2,9 @@
 
 buildscript {
 
+    ext {
+        nexusUrlExt = 'http://10.10.124.134:8081/repository/public/'
+    }
     final String NEXUS_URL_ENV_VAR = "NEXUS_URL"
     final String NEXUS_URL_LOCAL_VAR = "nexus.url"
     final String LOCAL_PROPERTIES_FILE_NAME = "local.properties"
