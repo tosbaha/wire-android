@@ -25,9 +25,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import com.waz.log.BasicLogging.LogTag.DerivedLogTag
+import com.waz.service.{BackendConfig, FirebaseOptions}
 import com.waz.utils.IoUtils
+import com.waz.utils.wrappers.URI
 import com.waz.zclient.appentry.AppEntryActivity
 import com.waz.zclient.log.LogUI._
+import com.waz.zclient.utils.BackendController
 import org.json.{JSONException, JSONObject}
 
 import java.io.FileInputStream
@@ -36,6 +39,7 @@ class TestModeActivity extends AppCompatActivity with ActivityHelper with Derive
 
   private val ZETA_TEST_MODE_NOTIFICATION_ID: Int = 1367874
   private val TestModeNotificationChannelId = "TEST_MODE_NOTIFICATION_CHANNEL_ID"
+  private lazy val backendController = inject[BackendController]
 
   override def onStart() = {
     super.onStart()
@@ -62,6 +66,17 @@ class TestModeActivity extends AppCompatActivity with ActivityHelper with Derive
       val content = IoUtils.asString(new FileInputStream(files.head))
       try {
         val json = new JSONObject(content)
+        val config = new BackendConfig(
+          json.getString("environment"),
+          URI.parse(json.getString("baseUrl")),
+          URI.parse(json.getString("websocketUrl")),
+          None,
+          URI.parse(json.getString("teamsUrl")),
+          URI.parse(json.getString("accountsUrl")),
+          URI.parse(json.getString("websiteUrl")),
+          new FirebaseOptions("pushSenderId", "appId", "apiKey") // This is not applied anyway
+        )
+        backendController.setStoredBackendConfig(config)
       } catch {
         case e: JSONException => Toast.makeText(getApplicationContext, s"wire.json cannot be parsed", Toast.LENGTH_LONG).show()
       }
