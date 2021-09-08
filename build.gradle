@@ -63,8 +63,10 @@ allprojects {
 }
 
 ext {
-    largeVideoConferenceCalls = false
-    federationUserDiscovery = false
+    largeVideoConferenceCalls = true
+    callingUiButtons = true
+    federationUserDiscovery = true
+    conferenceCallingRestriction = true
 }
 
 apply from: "./scripts/avs.gradle"

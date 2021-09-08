@@ -151,9 +151,10 @@ class NewCallingFragment extends FragmentHelper {
     Signal.zip(
       callController.selfParticipant,
       callController.showTopSpeakers,
-      callController.allParticipants.map(_.size)
+      callController.allParticipants.map(_.size),
+      callController.isCallEstablished
     ).foreach {
-      case (selfParticipant, showTopSpeakers, participantsCount) =>
+      case (selfParticipant, showTopSpeakers, participantsCount, true) =>
 
         val selfVideoView = new SelfVideoView(getContext, selfParticipant)
 
@@ -171,8 +172,6 @@ class NewCallingFragment extends FragmentHelper {
 
   private def showFloatingSelfPreview(selfVideoView: UserVideoView, cardView: CardView): Unit = {
     verbose(l"Showing card preview")
-    // Todo: find a solution to remove the selfVideoPreview from from CallingGridFragment
-    // grid.removeView(selfVideoView)
     selfVideoView.setLayoutParams(
       new FrameLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -195,8 +194,13 @@ class NewCallingFragment extends FragmentHelper {
       case (false, size) =>
         viewPager.foreach(_.setAdapter(allParticipantsAdapter))
         allParticipantsAdapter.notifyDataSetChanged()
-        attachTabLayoutToViewPager()
-        if (size > AllParticipantsAdapter.MAX_PARTICIPANTS_PER_PAGE) showPaginationDots() else hidePaginationDots()
+        if (size > AllParticipantsAdapter.MAX_PARTICIPANTS_PER_PAGE) {
+          attachTabLayoutToViewPager()
+          showPaginationDots()
+        } else {
+          detachTabLayoutFromViewPager()
+          hidePaginationDots()
+        }
       case (true, _) =>
         viewPager.foreach(_.setAdapter(activeParticipantsAdapter))
         activeParticipantsAdapter.notifyDataSetChanged()

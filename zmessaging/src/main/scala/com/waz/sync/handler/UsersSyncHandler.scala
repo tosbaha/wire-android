@@ -30,11 +30,13 @@ import com.waz.sync.SyncResult
 import com.waz.sync.client.UsersClient
 import com.waz.sync.otr.OtrSyncHandler
 import com.waz.threading.Threading
+import com.waz.zms.BuildConfig
 
 import scala.concurrent.Future
 
 trait UsersSyncHandler {
   def syncUsers(ids: UserId*): Future[SyncResult]
+  def syncQualifiedUsers(qIds: Set[QualifiedId]): Future[SyncResult]
   def syncSearchResults(ids: UserId*): Future[SyncResult]
   def syncQualifiedSearchResults(qIds: Set[QualifiedId]): Future[SyncResult]
   def syncSelfUser(): Future[SyncResult]
@@ -58,12 +60,22 @@ class UsersSyncHandlerImpl(userService:      UserService,
   import UsersSyncHandler._
   import Threading.Implicits.Background
 
+  private def syncUsers(response: Either[ErrorResponse, Seq[UserInfo]]) = response match {
+    case Right(users) =>
+      userService.updateSyncedUsers(users).map(_ => SyncResult.Success)
+    case Left(error) =>
+      Future.successful(SyncResult(error))
+  }
+
   override def syncUsers(ids: UserId*): Future[SyncResult] =
-    usersClient.loadUsers(ids).future.flatMap {
-      case Right(users) =>
-        userService.updateSyncedUsers(users).map(_ => SyncResult.Success)
-      case Left(error) =>
-        Future.successful(SyncResult(error))
+    usersClient.loadUsers(ids).future.flatMap(syncUsers)
+
+  override def syncQualifiedUsers(qIds: Set[QualifiedId]): Future[SyncResult] =
+    if (BuildConfig.FEDERATION_USER_DISCOVERY) {
+      usersClient.loadQualifiedUsers(qIds).future.flatMap(syncUsers)
+    } else {
+      val ids: Array[UserId] = qIds.map(_.id).toArray
+      syncUsers(ids: _*)
     }
 
   private def syncSearchResults(response: Either[ErrorResponse, Seq[UserInfo]]) = response match {
@@ -83,7 +95,12 @@ class UsersSyncHandlerImpl(userService:      UserService,
     usersClient.loadUsers(ids).future.flatMap(syncSearchResults)
 
   override def syncQualifiedSearchResults(qIds: Set[QualifiedId]): Future[SyncResult] =
-    usersClient.loadQualifiedUsers(qIds).future.flatMap(syncSearchResults)
+    if (BuildConfig.FEDERATION_USER_DISCOVERY) {
+      usersClient.loadQualifiedUsers(qIds).future.flatMap(syncSearchResults)
+    } else {
+      val ids: Array[UserId] = qIds.map(_.id).toArray
+      syncSearchResults(ids: _*)
+    }
 
   def syncSelfUser(): Future[SyncResult] = usersClient.loadSelf().future flatMap {
     case Right(user) =>
@@ -129,7 +146,7 @@ class UsersSyncHandlerImpl(userService:      UserService,
     val gm = GenericMessage(Uid(), GenericContent.AvailabilityStatus(availability))
     for {
       Some(self)     <- userService.getSelfUser
-      users          <- usersStorage.list()
+      users          <- usersStorage.values
       (team, others) = users.filterNot(u => u.deleted || u.isWireBot).partition(_.isInTeam(self.teamId))
       recipients     = (List(self.id) ++
                         team.filter(_.id != self.id).map(_.id).toList.sorted ++
