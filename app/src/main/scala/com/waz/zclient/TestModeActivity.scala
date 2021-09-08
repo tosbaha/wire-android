@@ -25,8 +25,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import com.waz.log.BasicLogging.LogTag.DerivedLogTag
+import com.waz.utils.IoUtils
 import com.waz.zclient.appentry.AppEntryActivity
 import com.waz.zclient.log.LogUI._
+import org.json.{JSONException, JSONObject}
+
+import java.io.FileInputStream
 
 class TestModeActivity extends AppCompatActivity with ActivityHelper with DerivedLogTag {
 
@@ -53,6 +57,17 @@ class TestModeActivity extends AppCompatActivity with ActivityHelper with Derive
     notificationManager.notify(ZETA_TEST_MODE_NOTIFICATION_ID, builder.build())
 
     val downloadFolder = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+    val files = downloadFolder.listFiles().filter(_.getName.equals(s"wire.json"))
+    if (files.length > 0) {
+      val content = IoUtils.asString(new FileInputStream(files.head))
+      try {
+        val json = new JSONObject(content)
+      } catch {
+        case e: JSONException => Toast.makeText(getApplicationContext, s"wire.json cannot be parsed", Toast.LENGTH_LONG).show()
+      }
+    } else {
+      Toast.makeText(getApplicationContext, s"Did not find wire.json in " + downloadFolder.getAbsolutePath, Toast.LENGTH_LONG).show()
+    }
 
     startMain()
   }
