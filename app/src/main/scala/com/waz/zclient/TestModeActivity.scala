@@ -20,7 +20,7 @@ package com.waz.zclient
 
 import android.app.{NotificationChannel, NotificationManager}
 import android.content.{Context, Intent}
-import android.os.Build
+import android.os.{Build, Environment}
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
@@ -43,7 +43,7 @@ class TestModeActivity extends AppCompatActivity with ActivityHelper with Derive
     channel.setShowBadge(false)
     notificationManager.createNotificationChannel(channel)
     val builder = new NotificationCompat.Builder(getApplicationContext, TestModeNotificationChannelId)
-      .setSmallIcon(R.drawable.websocket)
+      .setSmallIcon(R.drawable.red_alert)
       .setStyle(new NotificationCompat.BigTextStyle())
       .setCategory(NotificationCompat.CATEGORY_SERVICE)
       .setPriority(if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) NotificationCompat.PRIORITY_MIN else NotificationCompat.PRIORITY_LOW)
@@ -51,6 +51,8 @@ class TestModeActivity extends AppCompatActivity with ActivityHelper with Derive
       .setContentTitle(s"Wire is in Test-Mode")
       .setContentText(s"This mode is not intended for production use as it is insecure")
     notificationManager.notify(ZETA_TEST_MODE_NOTIFICATION_ID, builder.build())
+
+    val downloadFolder = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
 
     startMain()
   }
