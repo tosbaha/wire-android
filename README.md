@@ -52,3 +52,5 @@ When importing project in Android Studio **do not allow** gradle plugin update. 
 ### Translations
 
 All Wire translations are crowdsourced via CrowdIn: https://crowdin.com/projects/wire
+
+Test
